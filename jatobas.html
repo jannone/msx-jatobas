@@ -1,0 +1,460 @@
+<!--
+
+JatoBAS - A javascript MSX-BASIC translator
+Copyright (C) 2006  Rafael Jannone
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+Read the LGPL license at: 
+http://www.gnu.org/copyleft/lesser.txt
+
+Contact the author -
+email: rafael AT jannone DOT org
+
+-->
+<html>
+<head>
+	<title>JatoBAS 0.1.5 - A Javascript MSX-BASIC translator</title>
+<script src='jatobas.js'></script>
+<script src='commands.js'></script>
+<script src='canvas.js'></script>
+<script src='sprites.js'></script>
+<style>
+
+body {
+	margin: 0px;
+}
+
+body, td {
+	font-family: verdana, tahoma;
+	font-size: 11px;
+}
+
+pre {
+	font-family: mono;
+	font-size: 14px;
+	margin: 1px;
+}
+
+h3 {
+	margin: 0;
+	margin-left: 24px;
+	font-size: 18px;
+}
+
+button {
+	background-color: #66c;
+	color: white;
+	border: solid 1px blue;
+	border-bottom: solid 1px black;
+}
+
+.btStop {
+	background-color: #c66;
+	border: solid 1px red;	
+}
+
+.btRun {
+}
+
+a:visited {
+	color: #16a;
+}
+
+.point {
+	position: absolute;
+	width: 3px;
+	height: 3px;
+}
+
+#output {
+	background: black; 
+	padding: 4px; 
+	border: solid 1px gray; 
+	color: white;
+	min-height: 384px;
+}
+
+#output pre {
+	display: inline;
+}
+
+#output input {
+	font-family: mono;
+	font-size: 14px;	
+	border: 0px;
+	background-color: #333333;
+	color: white;
+}
+
+#code {
+	border: solid 1px gray;
+}
+
+.translation {
+	height: 384px;
+	background: #CCFFCC; 
+	padding: 4px; 
+	border: solid 1px green; 
+	overflow: auto;
+}
+
+.translation pre {
+	font-size: 10px;
+}
+
+.tabContents {
+	display: none;
+}
+
+.tabs {
+	list-style-type: none;
+	padding-bottom: 24px;
+	border-bottom: 1px solid #66c;
+	margin: 0;
+	font-size: 12px;
+}
+
+.tabs li {
+	float: left;
+	height: 21px;
+	background-color: #ddf;
+	margin: 2px 2px 0 2px;
+	border: 1px solid #66c;
+}
+
+.tabs a {
+	float: left;
+	display: block;
+	color: #66c;
+	text-decoration: none;
+	padding: 4px;
+}
+
+.tabs a:hover {
+	background: #fff;
+}
+
+.tabSelected {
+	border-bottom: 1px solid #fff;
+	background-color: #fff;
+}
+
+.tabSelected a {
+	font-weight: bold;
+	color: #000;
+	background-color: #fff;
+}
+
+.cell1, .cell2, .cell3, .cell4, .cell5 {
+	width: 4px;
+	height: 4px;
+	font-size: 0px;
+}
+
+.cell1 {
+	background-color: #0000FF;
+}
+
+.cell2 {
+	background-color: #4444FF;
+}
+
+.cell3 {
+	background-color: #8888FF;
+}
+
+.cell4 {
+	background-color: #CCCCFF;
+}
+
+.cell5 {
+}
+
+.nib {
+	padding: 0px;
+	margin: 0px;
+	width: 16px;
+	height: 2px;
+	background-color: black;
+}
+
+.byt {
+	width:16px;
+	height:2px;
+}
+
+
+</style>
+</head>
+<body>
+
+<table width="100%" height="100%" cellpadding='0' cellspacing='0'>
+<tr>
+<td valign='top' style='padding: 8px' colspan='2'>
+
+<div style='text-align: center; margin: 16px'>
+	<h3 style='display: inline'>
+		<span style='color: green'>JatoBAS</span> <small>version 0.1.5</small>
+	</h3>
+	<img src='img/logo.gif' />
+	<small id='warning' style='color: red'></small>	
+</div>
+
+<table width="100%">
+<tr>
+	<td width='100%'>
+	<ul id='tabs' class='tabs'>
+		<li class="tabSelected"><a href='#' onclick='return showTab(this, "tabProgram");'>Program</a></li>
+		<li class="tab"><a href='#' onclick='return showTab(this, "tabTranslation");'>Translation</a></li>
+		<li class="tab"><a href='#' onclick='return showTab(this, "tabOutput");'>Output</a></li>
+		<li class="tab"><a href='#' onclick='return showTab(this, "tabScreen2");'>Screen 2</a></li>
+	</ul>
+	</td>
+	<td>
+		<button id='run' class='btRun'>Run</button>
+	</td>
+</tr>
+</table>
+
+<div class='tabContents' id='tabOutput'>
+	<div id='output'></div>
+</div>
+
+<div class='tabContents' id='tabTranslation'>
+	<div id='translation' class='translation'></div>
+</div>
+
+<div class='tabContents' id='tabProgram'>
+<textarea id='code' style='width: 100%' rows='23' spellcheck='false' 
+	onchange='dirtyCode(true);dirtyTrans(true)' oninput='dirtyCode(true);dirtyTrans(true)' ></textarea><br />
+	<p>
+		Load example:<br />
+		<select id='examples'>
+			<option value='bas/akernaak.bas'>Akernaak (text adventure)</option>
+			<option value='bas/devilseye.bas'>Devil's Eye</option>			
+			<option value='bas/campo.bas'>Gravitational Field</option>
+			<option value='bas/stars.bas'>Scrolling Stars</option>
+			<option value='bas/yellowstar.bas'>Yellow Star</option>
+			<option value='bas/circles.bas'>Concentric Circles</option>
+			<option value='bas/sprites.bas'>Sprites</option>
+			<option value='bas/keys.bas'>Keys and Sprites</option>
+			<option value='bas/game.bas'>Shoot em up</option>			
+		</select> 
+		<button onclick='loadExample();'>Load</button>
+	</p>	
+</div>
+
+<div class='tabContents' id='tabScreen2'></div>
+
+</td>
+</tr>
+<tr>
+	<td></td>
+	<td width='88' rowspan='2' style='text-align: right'>
+		<a href="http://sourceforge.net"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=182065&type=1" width="88" height="31" border="0" alt="SourceForge.net Logo" /></a>	
+	</td>
+</tr>
+<tr height='24'>
+<td valign='bottom' style='background-color: #eee; border-top: solid 1px gray; padding: 2px; padding-bottom: 4px'>
+	&nbsp;<a href='http://msx.jannone.org/jatobas/'>Home</a> 
+	<span style='color: gray'>|</span>
+	Download <span style='color: gray'>&raquo;</span> 
+		<a href='http://sourceforge.net/project/showfiles.php?group_id=182065&package_id=211140'>JatoBAS releases</a> 
+	<span style='color: gray'>|</span>
+	E-mail <span style='color: gray'>&raquo;</span> <a href='#' onclick='return email(this)'>Rafael Jannone</a>
+	<span style='color: gray'>|</span>
+	Project <span style='color: gray'>&raquo;</span> 
+		<a href='http://sourceforge.net/projects/jatobas'>SourceForge.net</a> 
+	<span style='color: gray'>|</span>		
+	<a href='example.html' style='color: green'>Embed BASIC on your site</a>
+</td>
+</tr>
+</table>
+
+</body>
+<script>
+
+var agt = navigator.userAgent.toLowerCase();
+var is_ie = (agt.indexOf("msie") != -1);
+var is_opera = (agt.indexOf("opera") != -1);
+
+function eid(id) {
+	return document.getElementById(id);
+}
+
+function email(el) {
+	var em = '@';
+	var ponto = '.';
+	el.setAttribute('href', 'mailto:' + 'rafael' + em + 'jannone' + ponto + 'org');
+}
+
+if (is_ie) {
+	var warning = eid('warning');
+	warning.innerHTML = "<br />Warning: no support for Internet Explorer yet. Try <a href='http://getfirefox.com'>Firefox</a> or <a href='http://www.opera.com'>Opera</a>.";
+}
+
+/* setup app */
+
+var canvas = new Canvas();
+canvas.init();
+canvas.appendTo(eid('tabScreen2'));
+
+var spriteCanvas;
+try {
+spriteCanvas = new SpriteCanvas();
+spriteCanvas.el.style.position = 'absolute';
+spriteCanvas.appendTo(eid('tabScreen2'));
+} catch (e) {}
+
+var interp = new Interp();
+
+interp.onRun = function() {
+	var bt = eid('run');
+	bt.innerHTML = 'Stop';
+	bt.onclick = function() { interp.halt(); };
+	bt.focus();
+	bt.blur();
+	bt.className = 'btStop';
+}
+
+interp.onStop = function() {
+	var bt = eid('run');
+	bt.innerHTML = 'Run';
+	bt.onclick = onEval;
+	bt.className = 'btRun';	
+	interp.cmd_print("Ok", "\n");
+}
+
+interp.onChangeMode = function(mode) {
+	showTab(3, 'tabScreen2');
+}
+
+var parser = new Parser();
+
+function dirtyCode(dirty) {
+	if (dirty != null)
+		dirtyCode.dirty = dirty;
+	return dirtyCode.dirty;
+}
+
+function dirtyTrans(dirty) {
+	if (dirty != null)
+		dirtyTrans.dirty = dirty;
+	return dirtyTrans.dirty;
+}
+dirtyTrans(true);
+
+function parserOnTranslate(txt, intLabel) {
+	var el = document.createElement('pre');
+	intLabel = (intLabel) ? '<b style="color: green">// ' + intLabel.substr(1) + ':</b> ' : '';
+	el.innerHTML = ((parser.currLabel) ? '<b>' + parser.currLabel + '</b> ' : '') + intLabel + txt;
+	eid('translation').appendChild(el);
+}
+
+function showTab(tab, tabname) {
+	var divs = document.getElementsByTagName('div');
+	for (var i = 0; i < divs.length; i++) {
+		var div = divs[i];
+		if (div.className == 'tabContents')
+			div.style.display = 'none';
+	}
+	var tabs = eid('tabs').getElementsByTagName('li');
+	for (var i = 0; i < tabs.length; i++)
+		tabs[i].className = 'tab';
+	if (typeof tab == 'number')
+		tab = tabs[tab];
+	else
+		tab = tab.parentNode;
+	tab.className = 'tabSelected';
+	eid(tabname).style.display = 'block';
+	
+	if (spriteCanvas && tabname == 'tabScreen2') {
+		spriteCanvas.el.style.top = canvas.el.offsetTop;
+		spriteCanvas.el.style.left = canvas.el.offsetLeft;
+	}
+	if (tabname == 'tabTranslation') {
+		if (dirtyTrans()) {
+			onTranslate();
+			dirtyTrans(false);
+		}
+	}
+	return false;
+}
+
+function doTranslate() {
+	interp.canvas = canvas;
+	interp.spriteCanvas = spriteCanvas;
+
+	var code = eid('code').value;
+	interp.output = eid('output');
+	interp.output.innerHTML = '';	
+
+	var DEBUG_PARSER = false;
+
+	parser.warnNotImplemented = true;
+	parser.warn = function(type, line, data) {
+		//alert("WARNING: " + type + " in line " + line);
+	}
+
+	if (!DEBUG_PARSER) {
+		try {
+			parser.start(code);
+		} catch (e) {
+			alert(e + ', in line ' + parser.currLabel + "\n>>" + parser.lex.line + "\n(rule " + parser.rule + ")");
+			return false;
+		}
+	} else {	
+		parser.start(code);
+	}
+	
+	return true;
+}
+
+function onTranslate() {
+	eid('translation').innerHTML = '';
+	parser.onTranslate = parserOnTranslate;	
+	doTranslate();
+}
+
+function onEval() {
+	parser.onTranslate = null;
+	if (doTranslate()) {
+		showTab(2, 'tabOutput');
+		interp.run(parser);
+	}
+}
+
+function loadExample() {
+	if (dirtyCode()) {
+		var r = confirm("Your code will be overwritten. Proceed?");
+		if (!r)
+			return;
+	}
+	var path = eid('examples').value;
+	var ajax = new XMLHttpRequest();
+	ajax.open('GET', path, false);
+	ajax.send('');
+	var txt = ajax.responseText;
+	eid('code').value = txt;
+	dirtyCode(false);
+	dirtyTrans(true);
+}
+
+showTab(0, 'tabProgram');
+interp.onStop();
+
+</script>
+</html>

@@ -1,0 +1,107 @@
+<html>
+<head>
+	<title>JatoBAS website example</title>
+	<!-- ** STEP 1: Include JatoBAS files ** -->
+	<!-- Of course you can also download JatoBAS and include those .js directly from your site -->
+	<!-- However, by linking them externally you get automatic updates -->
+	<script src='http://msx.jannone.org/jatobas/jatobas.js'></script>
+	<script src='http://msx.jannone.org/jatobas/commands.js'></script>
+	<script src='http://msx.jannone.org/jatobas/canvas.js'></script>
+	<script src='http://msx.jannone.org/jatobas/sprites.js'></script>
+	
+<!-- ** STEP 2: style your tags ** -->
+<!-- You can just copy and paste the CSS below -->
+<style>
+
+html {
+	background-color: black;
+}
+
+body, td {
+	font-family: verdana, tahoma;
+	font-size: 11px;
+}
+
+a {
+	color: lime;
+}
+
+pre {
+	font-family: mono;
+	font-size: 14px;
+}
+
+#output pre {
+	display: inline;
+}
+
+#output input {
+	font-family: mono;
+	font-size: 14px;	
+	border: 0px;
+	background-color: #333333;
+	color: white;
+}
+
+</style>
+</head>
+<!-- ** STEP 3: you need at least an empty body tag ** -->
+<body>
+	<div style='float: right'>
+		<button onclick="window.open('view-source:' + document.location);">Click to see how it's done</button>
+	</div>
+</body>
+<!-- ** STEP 4: after the body, put your BASIC listing into a Javascript variable ** -->
+<!-- 
+	** ATTENTION ATTENTION ATTENTION **
+	You must use script type="text/javascript;e4x=1" below, or the CDATA trick wont work
+-->
+<script type="text/javascript;e4x=1">
+
+var code = <r><![CDATA[
+SCREEN 2
+FOR I=90 TO 0 STEP -8
+CIRCLE(128,96), I, (I/8 MOD 14) + 2: SLEEP 1
+NEXT
+
+10 CLS
+PRINT "COOL BASIC HOMEPAGE -=-=-=-="
+PRINT
+PRINT "1. LINKS"
+PRINT "2. DOWNLOADS"
+PRINT "3. ABOUT..."
+PRINT
+LINE INPUT "TYPE OPTION: "; OPT
+ON OPT GOSUB 100, 200, 300
+GOTO 10
+
+50 PRINT: LINE INPUT "PRESS ENTER TO GO BACK... "; R$: RETURN
+
+100 CLS
+PRINT "LINKS -=-=-=-="
+PRINT
+HTML "<a href='http://slashdot.org'>Slashdot</a><br />"
+HTML "<a href='http://digg.com'>Digg</a>"
+GOTO 50
+
+200 CLS
+PRINT "DOWNLOADS -=-=-=-="
+PRINT
+HTML "<a href='http://getfirefox.com'>Firefox</a><br />"
+GOTO 50
+
+300 CLS
+PRINT "ABOUT -=-=-=-="
+PRINT
+PRINT "An entire site running over JatoBAS"
+PRINT "by Rafael Jannone"
+PRINT "quite useless indeed :)"
+GOTO 50
+]]></r>;
+
+// ** STEP 5: run your BASIC program! Teach BASIC to your kids :) **
+
+Jatobas.run(code);
+
+</script>
+</html>
