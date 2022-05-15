@@ -1,1 +1,4 @@
 .svn
+.git
+node_modules
+dist
