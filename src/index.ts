@@ -1,24 +1,24 @@
 import { Parser } from './parser';
 
-function transpile(code) {
+function transpile(code: string) {
   const parser = new Parser();
 	parser.warnNotImplemented = true;
 	parser.warn = function(type, line, data) {
 		console.warn("WARNING: " + type + " in line " + line);
 	}
-  const l = console.warn;
-  parser.onTranslate = (trans, stats) => {
-    console.log(trans, stats);
-  }
+  // parser.onTranslate = (trans, stats) => {
+  //   console.log(trans, stats);
+  // }
 
+  let result;
   try {
-    parser.start(code);
+    result = parser.start(code);
   } catch (e) {
     // console.error(e);
     console.error(e + ', in line ' + parser.currLabel + "\n>>" + parser.lex.line + "\n(rule " + parser.rule + ")");
     return false;
   }
-  // console.log(parser);
+  console.log(result);
 }
 
 const t = `

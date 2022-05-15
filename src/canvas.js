@@ -517,9 +517,12 @@ CanvasCtx.prototype.updateDirty = function() {
 }
 
 // Canvas - best canvas available depending on your browser
-var Canvas = CanvasTbl;
-try {
-	Canvas = (CanvasRenderingContext2D && typeof(CanvasRenderingContext2D) ==  
-"function") ? CanvasCtx : CanvasTbl;
-} catch(e) {}
+// var Canvas = CanvasTbl;
+// try {
+// 	Canvas = (CanvasRenderingContext2D && typeof(CanvasRenderingContext2D) ==  
+// "function") ? CanvasCtx : CanvasTbl;
+// } catch(e) {}
 
+module.exports = {
+	ScreenCanvas: CanvasCtx,
+}

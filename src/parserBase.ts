@@ -33,9 +33,11 @@ export abstract class ParserBase {
   data: string[] = [];
   rule: string = '';
   dataLabels: {[key: string]: number} = {};
-  funcs: Function[] = [];
+  // funcs: Function[] = [];
+  output: string[] = [];
   labels: {[label: string]: number} = {};
   typedefs: {[char: string]: string} = {};
+  checkOutput?: boolean;
 
   private getTtk () {
     return this.ttk;
@@ -74,7 +76,7 @@ export abstract class ParserBase {
     this.rule = 'start';
     
     this.currLabel = '';
-    this.funcs = [];
+    this.output = [];
     this.labels = {};
     this.data = [];
     this.dataLabels = {};
@@ -98,6 +100,11 @@ export abstract class ParserBase {
       else
         this.getLine();
     }
+
+    return {
+      lines: this.output,
+      labels: this.labels,
+    }
   }
   
   private labeledLine () {
@@ -105,7 +112,7 @@ export abstract class ParserBase {
     
     this.currLabel = this.tval;
     this.next();
-    var index = this.funcs.length;
+    var index = this.output.length;
     this.getLine();
     this.labels[this.currLabel] = index;
   }
@@ -123,15 +130,16 @@ export abstract class ParserBase {
         continue;
       }
       if (stat.charAt(0) == '_') {
-        var f = null;
-        try {
-          f = new Function('I', 'V', trans);
-        } catch (ex) {
-          throw "Parser error, generated invalid translation: " + trans;
+        if (this.checkOutput) {
+          try {
+            var f = new Function('I', 'V', trans);
+          } catch (ex) {
+            throw "Parser error, generated invalid translation: " + trans;
+          }
         }
-        this.funcs.push(f);
+        this.output.push(trans);
         (this.onTranslate) && (this.onTranslate(trans));
-        this.labels[stat] = this.funcs.length;
+        this.labels[stat] = this.output.length;
         (this.onTranslate) && (this.onTranslate('', stat));
         trans = '';
       } else {
@@ -139,13 +147,14 @@ export abstract class ParserBase {
       }
     }
     if (trans != '') {
-      var f = null;
-      try {
-        f = new Function('I', 'V', trans);
-      } catch (ex) {
-        throw "Parser error, generated invalid translation: " + trans;
+      if (this.checkOutput) {
+        try {
+          var f = new Function('I', 'V', trans);
+        } catch (ex) {
+          throw "Parser error, generated invalid translation: " + trans;
+        }
       }
-      this.funcs.push(f);
+      this.output.push(trans);
       (this.onTranslate) && (this.onTranslate(trans));
     }	
   }

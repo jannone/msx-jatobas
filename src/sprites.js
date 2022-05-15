@@ -187,3 +187,7 @@ SpriteCanvas.prototype.drawSpriteZoom = function(sp) {
 		if (mask &   1) cv.fillRect(x+28, y, 4, 4);		
 	}
 }
+
+module.exports = {
+	SpriteCanvas,
+}
