@@ -15,6 +15,17 @@ export interface FunctionDecl {
   relay?: string,
 }
 
+export interface ParsedProgram {
+  lines: string[];
+  labels: {
+      [label: string]: number;
+  };
+  data: string[];
+  dataLabels: {
+      [key: string]: number;
+  };  
+}
+
 type ParseCommandFn = (stats: string[]) => string[] | CommandDecl;
 type ParseFunctionFn = () => string;
 
@@ -72,7 +83,7 @@ export abstract class ParserBase {
     return '_' + this.gid;
   }
   
-  public start (code: string) {
+  public start (code: string): ParsedProgram {
     this.rule = 'start';
     
     this.currLabel = '';
@@ -104,6 +115,8 @@ export abstract class ParserBase {
     return {
       lines: this.output,
       labels: this.labels,
+      data: this.data,
+      dataLabels: this.dataLabels,
     }
   }
   
@@ -458,7 +471,7 @@ export abstract class ParserBase {
     var expr = this.expression();
     /**@todo generalize special vars assignments such as "sprite$", delegate to other methods **/
     if (name == '@sprite$') {
-      return 'I.cmd_setsprite(_int(' + matrix?.[0] + '),' + expr + ');';
+      return 'I.cmd_setsprite(I._int(' + matrix?.[0] + '),' + expr + ');';
     }
     var matrixString = (matrix) ? '[' + matrix.join('][') + ']': '';
     var firstchar = (name[0] == '@') ? name[1] : name[0];
@@ -466,7 +479,7 @@ export abstract class ParserBase {
     if (firstchar && lastchar.match(/[a-zA-Z0-9_]/)) {
       var type = this.typedefs[firstchar];
       if (type == 'int') {
-        expr = '_int(' + expr + ')';
+        expr = 'I._int(' + expr + ')';
       }
     }
     return 'V["' + name + '"]' + matrixString + '=' + expr + ';';	
@@ -518,7 +531,7 @@ export abstract class ParserBase {
           if (param == 'pair')
             args.push('[' + pair[0] + ',' + pair[1] + ']');
           else
-            args.push('[_int(' + pair[0] + '),_int(' + pair[1] + ')]');
+            args.push('[I._int(' + pair[0] + '),I._int(' + pair[1] + ')]');
           isig++;
           break;
         case 'str':
@@ -531,14 +544,14 @@ export abstract class ParserBase {
         case 'num':
         case 'n...':
           var expr = this.expression();
-          args.push('_float('+ expr + ')');
+          args.push('parseFloat('+ expr + ')');
           if (param == 'num')
             isig++;
           break;
         case 'int':
         case 'i...':
           var expr = this.expression();
-          args.push('_int('+ expr + ')');
+          args.push('I._int('+ expr + ')');
           if (param == 'int')
             isig++;
           break;
@@ -562,7 +575,7 @@ export abstract class ParserBase {
           var arg;
           if (matrix) {
             const index = matrix.pop();
-            var matrixString = (matrix.length) ? '[_int(' + matrix.join(')][_int(') + ')]' : '';
+            var matrixString = (matrix.length) ? '[I._int(' + matrix.join(')][I._int(') + ')]' : '';
             arg = '{ref:V["@' + name + '"]' + matrixString + ',idx:' + index + '}';
           } else {
             arg = '"' + name + '"';
@@ -647,7 +660,7 @@ export abstract class ParserBase {
       var matrix = this.getMatrix();
       (matrix) && (value = '@' + value);
       value = 'V["' + value + '"]';			
-      var matrixString = (matrix) ? '[_int(' + matrix.join(')][_int(') + ')]' : '';
+      var matrixString = (matrix) ? '[I._int(' + matrix.join(')][I._int(') + ')]' : '';
       value = '(' + value + matrixString + '||' + def + ')';
     } else {
       throw("Missing argument");

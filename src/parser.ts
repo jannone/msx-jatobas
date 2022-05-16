@@ -35,7 +35,7 @@ export class Parser extends ParserBase {
     'line': { method: 'cmd_line', signature: 'parseLine' },
     'circle': { method: 'cmd_circle', signature: ['ipair', 'int', 'n...?'] },
     'sleep': { method: 'cmd_sleep', signature: ['int'], suspend: true },
-    'eval': { method: 'fn_eval', signature: ['str'] },
+    // 'eval': { method: 'fn_eval', signature: ['str'] },
     'setsprite': { method: 'cmd_setsprite', signature: ['int', 'str'] },
     'put': { method: 'cmd_putsprite', signature: 'parsePut' },
     'grp': { method: 'cmd_grp', signature: 'parseGrp' },
@@ -52,16 +52,16 @@ export class Parser extends ParserBase {
     'atn': { signature: ['num'], relay: 'Math.atan' },
     'bin$': { signature: ['int'], method: 'fn_bin' },
     'cos': { signature: ['num'], relay: 'Math.cos' },
-    'cdbl': { signature: ['val'], relay: '_float' },
+    'cdbl': { signature: ['val'], relay: 'parseFloat' },
     'chr$': { signature: ['int'], relay: 'String.fromCharCode' },
-    'cint': { signature: ['val'], relay: '_int' },
+    'cint': { signature: ['val'], method: '_int' },
     'csng': { signature: ['val'], notimpl: true },	
     'sin': { signature: ['num'], relay: 'Math.sin' },
     'tan': { signature: ['num'], relay: 'Math.tan' },
     'sqr': { signature: ['num'], relay: 'Math.sqrt' },
     'sgn': { signature: ['num'], method: 'fn_sgn' },	
     'rnd': { signature: ['i...'], method: 'fn_rnd' },
-    'int': { signature: ['val'], relay: '_int' },
+    'int': { signature: ['val'], method: '_int' },
     'string$': { signature: ['int', 'str'], method: 'fn_string' },
     'tab': { signature: ['int'], method: 'fn_tab' },
     'str$': { signature: ['val'], method: 'fn_str' },	
@@ -73,7 +73,7 @@ export class Parser extends ParserBase {
     'inkey$': { signature: [], method: 'fn_inkey' },
     'stick': { signature: ['int'], method: 'fn_stick' },
     'strig': { signature: ['int'], method: 'fn_strig' },	
-    'eval': { signature: ['str'], method: 'fn_eval' },
+    // 'eval': { signature: ['str'], method: 'fn_eval' },
     'play': { signature: ['int'], method: 'fn_play' }
   };
 
@@ -188,7 +188,7 @@ export class Parser extends ParserBase {
   protected parseGrp() {
     var args = [];
     var pair = this.pair();
-    args.push('[_int(' + pair[0] + '),_int(' + pair[1] + ')]');
+    args.push('[I._int(' + pair[0] + '),I._int(' + pair[1] + ')]');
     this.eat(',');
     var pargs = this.parsePrint();
     pargs.shift();

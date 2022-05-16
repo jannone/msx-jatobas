@@ -1,343 +1,278 @@
-import { ScreenCanvas } from './canvas';
-import { SpriteCanvas } from './sprites';
+import { InterpBase, VarRef } from "./interpBase";
 
-var _int = Math.floor;
-var _float = parseFloat;
-var _notimpl = function() {
-	throw("Not implemented");
-}
-
-interface Program {
-  lines: string[],
-  labels: {[label: string]: number},
-}
-
-interface ForStackItem {
-  name: string,
-  label: string,
-  limit: number,
-  step: number,
-}
-
-type VarRef = string | {
-  ref: any[],
-  idx: number,
-}
-
-function toNumber(v: any): number {
-	if (typeof v != 'number') {
-		v = (v.indexOf('.') >= 0) ? parseFloat(v) : parseInt(v);
-		if (v.toString == 'NaN')
-			throw ('Invalid cast to number');		
+export class Interp extends InterpBase {
+	fn_asc(v: string) {
+		return v.charCodeAt(0);
 	}
-	return v;
+	
+	fn_bin(n: number) {
+		var r = '';	
+		if (n < 0)
+			n = 65536 + n;
+		if (n < 0)
+			throw ("Overflow");		
+		while (n != 0) {
+			r = (n & 1).toString() + r;
+			n >>= 1;
+		}
+		return r;
+	}
+	
+	fn_rnd() {
+		return Math.random();
+	}
+	
+	fn_string(times: number, str: string) {
+		var r = '';
+		while (times--)
+			r += str;
+		return r;
+	}
+	
+	fn_tab(n: number) {
+		return this.fn_string(n, "\t");
+	}
+	
+	fn_val(str: string) {
+		//@todo: implement more conversions
+		if (str.substr(0, 2).toUpperCase() == '&H') {
+			str = '0x' + str.substr(2);
+		}
+		var v = parseInt(str);
+		return (isNaN(v)) ? 0 : v;
+	}
+	
+	fn_str(val: any) {
+		return val.toString();
+	}
+	
+	fn_mid(str: string, idx: number, len: number) {
+		return str.toString().substr(idx, len);
+	}
+	
+	fn_left(str: string, len: number) {
+		return str.toString().substr(0, len);
+	}
+	
+	fn_right(str: string, len: number) {
+		return str.toString().substr(-len);
+	}
+	
+	fn_len(ref: VarRef) {
+		return this.getVar(ref).toString().length;
+	}
+	
+	fn_inkey() {
+		return Interp.pressed;
+	}
+	
+	fn_stick(stick: number) {
+		if (stick == 0) {
+			var dir = Interp.stick0;
+			if (dir[37]) {
+				return dir[40] ? 6 : (dir[38] ? 8 : 7);
+			} else
+			if (dir[38]) {
+				return dir[37] ? 8 : (dir[39] ? 2 : 1);
+			} else
+			if (dir[39]) {
+				return dir[38] ? 2 : (dir[40] ? 4 : 3);
+			} else
+			if (dir[40]) {
+				return dir[39] ? 4 : (dir[37] ? 6 : 5);
+			}
+		}
+		return 0;
+	}
+	
+	fn_strig(stick: number) {
+		if (stick == 0) {
+			return Interp.stick0[32] ? -1 : 0;
+		}
+		return 0;
+	}
+	
+	// fn_eval(js: string) {
+	// 	return eval(js);
+	// }
+	
+	fn_play() {
+		return 0;
+	}
+	
+	fn_sgn(v: number) {
+		return (v == 0) ? 0 : ((v < 0) ? -1 : 1);
+	}
+	
+	cmd_clear() {
+		this.vars = {};
+	}
+	
+	cmd_print(...args: any[]) {
+		/**@todo implement "USING" format mask */
+		if (args[0].file == null || !this.output) {
+			return;
+		}
+		var output = [];
+		for (var i = 1; i < args.length; i++) {
+			output.push(args[i]);
+		}
+		if (args[0].file == null) {
+			var el = document.createElement('pre');
+			el.innerHTML = output.join('').replace('<', '&lt;').replace("\n", '<br />');
+			this.output.appendChild(el);
+		} else {
+			this.blitChars(null, output.join(''));
+		}
+	}
+	
+	cmd_html(...args: any[]) {
+		if (!this.output)
+			return;
+		var output = [];
+		for (var i = 1; i < args.length; i++) {
+			output.push(args[i]);
+		}
+		var el = document.createElement('pre');
+		el.innerHTML = output.join('');
+		this.output.appendChild(el);
+	}
+	
+	cmd_input(title: string, refs: VarRef[], idx: number) {
+		this.suspend();
+		idx = idx || 0;
+		
+		if (idx == refs.length) {
+			this.resume();
+		} else {
+			var ref = refs[idx];
+			var input = document.createElement('input');
+			this.cmd_print(title);
+			this.output?.appendChild(input);
+			input.onkeypress = (e) => {
+				e = e || window.event;
+				if (e.keyCode == 13) {
+					var v = input.value;
+					this.setVar(ref, v);
+					this.output?.removeChild(input);
+					this.cmd_print(v, "\n");
+					this.cmd_input(title, refs, idx + 1);
+				}
+			}
+			input.focus();
+		}
+	}
+	
+	cmd_read(...args: any[]) {
+		for (var i = 0; i < args.length; i++) {
+			var arg = args[i];
+			var v = this.program.data[this.dataIdx++];
+			this.setVar(arg, v);
+		}
+	}
+	
+	cmd_restore(label: string) {
+		this.dataIdx = (label) ? this.program.dataLabels[label] : 0;
+	}
+	
+	cmd_cls() {
+		if (this.output) {
+			this.output.innerHTML = '';		
+		}
+	}
+	
+	cmd_screen(mode: number, submode: number) {
+		this.suspend();
+		this.curPos = [0,0];
+		this.onChangeMode?.(mode);
+		var oldMode = this.canvas.getMode();
+		this.canvas.setMode(mode);
+		if (this.spriteCanvas) {
+			if (typeof(submode) === 'number') {
+				this.spriteCanvas.setMode(submode);
+			}
+			if (oldMode != mode) {
+				this.spriteCanvas.clear();
+			} else {
+				this.spriteCanvas.clearSprites();
+			}
+		}
+		var I = this;
+		setTimeout(function() { I.resume(); }, 1000);
+	}
+	
+	cmd_color(fg: number, bg: number, border: number) {
+		this.canvas.setColors(fg, bg, border);
+	}
+	
+	cmd_pset(pair: number[], c: number) {
+		if (c === null) {
+			c = this.canvas.color;
+		}
+		this.canvas.pset(this._int(pair[0]), this._int(pair[1]), c);
+		this.curPos = pair;
+	}
+	
+	cmd_line(seg: number[][], c: number, type: string) {
+		if (c === null) {
+			c = this.canvas.color;
+		}
+		var src = seg[0] || this.curPos;
+		var dest = seg[1] || this.curPos;
+		if (!type) {
+			this.canvas.line(this._int(src[0]), this._int(src[1]), this._int(dest[0]), this._int(dest[1]), c);
+		} else
+		if (type == 'b' || type == 'B') {
+			this.canvas.rect(this._int(src[0]), this._int(src[1]), this._int(dest[0]), this._int(dest[1]), c);
+		} else
+		if (type == 'bf' || type == 'BF') {
+			this.canvas.fillRect(this._int(src[0]), this._int(src[1]), this._int(dest[0]), this._int(dest[1]), c);
+		}	
+		this.curPos = dest;
+	}
+	
+	cmd_circle(src: number[], rad: number, c: number) {
+		if (c === null) {
+			c = this.canvas.color;
+		}
+		this.canvas.circle(this._int(src[0]), this._int(src[1]), rad, c);
+	}
+	
+	cmd_sleep(tim: number) {
+		var I = this;
+		this.suspend();
+		setTimeout(function() { I.resume(); }, tim);
+	}
+	
+	cmd_setsprite(idx: number, data: number[]) {
+		this.spriteCanvas.setSprite(idx, data);
+	}
+	
+	cmd_putsprite(idx: number, coord: number[], color: number, pat: number) {
+		var x = coord ? coord[0] : null;
+		var y = coord ? coord[1] : null;	
+		this.spriteCanvas.putSprite(idx, x, y, color, pat);
+	}
+	
+	cmd_grp(coord: number[]) {
+		if (!this.canvas)
+			return;
+		var output = [];
+		for (var i = 1; i < arguments.length; i++) {
+			output.push(arguments[i]);
+		}
+		var txt = output.join('');
+		this.blitChars(coord, txt);
+	}
+	
+	cmd_poke(address: number, value: number) {
+		this.ram[address] = value;
+	}
+	
+	cmd_run(line: string) {
+		this.clear();
+		if (line) {
+			this.jump(line);
+		}
+	}	
 }
-
-export class Interp {
-  curPos: number[] = [0, 0];
-  onRun?: () => void;
-  onStop?: () => void;
-  
-  private program: Program = {
-    lines: [],
-    labels: {},
-  };
-  private funcs: Function[] = [];
-  private suspended = false;
-  private stop = false;
-  private currLabel: string = '';
-  // instruction pointer
-  private ip: number = 0;
-  private gosubStack: string[] = [];
-  private forStack: ForStackItem[] = [];
-  private dataIdx: number = 0;
-  private ram: {[address: number]: number} = {};
-  private canvas: ScreenCanvas;
-  private spriteCanvas: SpriteCanvas;
-
-  static hooked: boolean;
-  static pressed = '';
-  static stick0: {[keyCode: number]: boolean} = [];
-  
-  vars: {[name: string]: any} = {};
-  handleOn: {[type: string]: {
-    jump: string
-  }} = {};
-
-  constructor({
-    canvas,
-    spriteCanvas,
-  }: {
-    canvas: ScreenCanvas,
-    spriteCanvas: SpriteCanvas,
-  }) {
-    this.canvas = canvas;
-    this.spriteCanvas = spriteCanvas;
-  }
-
-  static keydown(e: KeyboardEvent) {
-    e = e || window.event;
-    if (e.keyCode) {
-      var bDir = (e.keyCode >= 37 && e.keyCode <= 40);
-      if (bDir || e.keyCode == 32) {
-        // directional keys + space
-        Interp.stick0[e.keyCode] = true;
-      }
-      if (!bDir) {
-        // all the rest + space
-        Interp.pressed = String.fromCharCode(e.keyCode);
-      }
-    }	
-  }
-
-  static keyup(e: KeyboardEvent) {
-    e = e || window.event;
-    Interp.pressed = '';
-    if (e.keyCode) {
-      var bDir = (e.keyCode >= 37 && e.keyCode <= 40);
-      if (bDir || e.keyCode == 32) {
-        // directional keys + space
-        Interp.stick0[e.keyCode] = false;
-      }
-    }
-  }
-
-  static installHooks() {
-    window.addEventListener('keydown', Interp.keydown, false);
-    window.addEventListener('keyup', Interp.keyup, false);
-    // keypress will catch keys even when there's already a key pressed
-    // FIXME: can we remove keydown?
-    window.addEventListener('keypress', Interp.keydown, false);	
-    Interp.hooked = true;
-  }
-
-  clear() {
-    if (!Interp.hooked) {
-      Interp.installHooks();
-    }
-    this.vars = {};
-    this.handleOn = {};
-    this.forStack = [];
-    this.gosubStack = [];
-    this.ram = {};
-    this.currLabel = '';
-    this.dataIdx = 0;
-    this.stop = false;
-    this.ip = 0;
-  }
-
-  run(program: Program) {
-    this.clear();
-    this.program = program;
-    this.funcs = this.program.lines.map((line) => {
-      return new Function('I', 'V', line);
-    });
-    this.onRun?.();
-    this.resume();
-  }
-
-  suspend() {
-    this.suspended = true;
-  }
-
-  halt() {
-    this.stop = true;
-    if (this.suspended) {
-      this.onStop?.();
-    }
-  }
-
-  jump(label: string) {
-    var ip = this.program.labels[label];
-    if (typeof ip == 'undefined')
-      throw('Invalid line number ' + label);
-    if (label && label.toString().charAt(0) != '_')
-      this.currLabel = label;
-    this.ip = ip;
-  }
-
-  resume() {
-    var dt = new Date();
-    var st = dt.getTime();
-    var len = this.funcs.length;
-    var cyc = 0;
-    var canvas = this.canvas;
-      
-    this.suspended = false;
-    
-    //try {
-    
-    while (this.ip < len && !this.stop && !this.suspended) {
-      if (cyc++ & 128) {
-        cyc = 0;
-        if (new Date().getTime() - st > 250)
-          break;
-      }
-      var f = this.funcs[this.ip];
-      var label = null;
-      try {
-        label = f(this, this.vars);
-      } catch (e) {
-        console.log(this.currLabel, f);
-        throw(e);
-      }
-      if (label == -1) {
-        this.ip = len;
-        break;
-      }
-      if (label) {
-        this.jump(label);
-      } else {
-        this.ip++;
-      }
-    }
-
-    /*
-    } catch (e) {
-
-      alert(e + ' in line ' + this.currLabel); // + "\n" + this.currFunc 
-      (this.onStop) && (this.onStop());
-      
-      return;
-    }
-    */
-    
-    if (canvas)
-      canvas.updateDirty();
-      
-    if (this.spriteCanvas)
-      this.spriteCanvas.update();
-    
-    if (this.suspended)
-      return;
-    
-    if (this.stop)
-      this.ip = len;
-    else
-    if (this.ip != len) {
-      var I = this;
-      setTimeout(function() { I.resume(); }, 1);
-      return;
-    }
-    (this.onStop) && (this.onStop());
-  }
-
-  setOn(type: 'stop' | 'error', jump: string) {
-    this.handleOn[type] = this.handleOn[type] || {}; 
-    this.handleOn[type].jump = jump;
-  }
-
-  activateOn(type: never, active: never) {
-    /**@todo */
-  }
-
-  pgosub(line: string, back: string) {
-    this.gosubStack.unshift(back);
-    return line;
-  }
-
-  preturn() {
-    var to = this.gosubStack.shift();
-    if (!to)
-      throw("RETURN without GOSUB");
-    return to;
-  }
-
-  pfor(varname: string, label: string, limit: string, step: string) {
-    const stepNum = toNumber(step);
-    const limitNum = toNumber(limit);
-    const item = {name: varname, label: label, limit: limitNum, step: stepNum};
-    this.forStack.unshift(item);
-  }
-
-  pnext(varname: string) {
-    var stack = this.forStack;
-    var el = null;
-    // find requested varname in stack
-    for (var i = 0; i < stack.length; i++) {
-      var s = stack[i];
-      if (varname == null || s.name == varname) {
-        el = s;
-        varname = s.name;
-        break;
-      }
-    }
-    if (el) {
-      // if found, eliminate part of the stack that was "skipped" by varname
-      if (i > 0) {
-        this.forStack = this.forStack.slice(i);
-      }
-    } else {
-      throw('NEXT without FOR');
-    }
-    this.vars[varname] = toNumber(this.vars[varname]) + el.step;
-    const v = this.vars[varname]; 
-    if ((el.step > 0 && v > el.limit) || (el.step < 0 && v < el.limit)) {
-      this.forStack.shift();
-      return null;
-    }
-    return el.label;
-  }
-
-  subdim(a: any, i: number, dimensions: number[], d: number) {
-    a[i] = new Array(dimensions[d] + 1);
-    d++;
-    if (d < dimensions.length) {
-      for (var q = 0; q < a.length; q++) {
-        this.subdim(a[i], q, dimensions, d);
-      }
-    }
-  }
-
-  dim(v: string, dimensions: number[]) {
-    var sz = dimensions[0] + 1;
-    var a = new Array(sz);
-    this.vars[v] = a;
-    dimensions.shift();
-    if (dimensions.length) {
-      for (var i = 0; i < a.length; i++) {
-        this.subdim(a, i, dimensions, 0);
-      }
-    }
-  }
-
-  setVar(ref: VarRef, value: any) {
-    if (typeof ref == 'string') {
-      this.vars[ref] = value;
-      return;
-    }
-    if (!ref.ref)
-      throw "Subscript out of Range";
-    ref.ref[ref.idx] = value;	
-  }
-
-  getVar(ref: VarRef) {
-    if (typeof ref == 'string') {
-      return this.vars[ref];
-    }
-    return ref.ref[ref.idx];
-  }
-
-  blitChars(coord: number[], txt: string) {
-    if (!this.canvas)
-      return;
-      
-    coord = coord || this.curPos;
-    var output = [];
-    var x = coord[0];
-    var y = coord[1];
-    var ox = x;
-    for (var i = 0; i < txt.length; i++) {
-      var asc = txt.charCodeAt(i);
-      if (asc == 10) {
-        x = ox;
-        y += 8;
-      } else {
-        this.canvas.blitChar(x, y, asc);
-        x += 8;
-      }
-    }
-    this.curPos = [x, y];
-  }
-
-};
