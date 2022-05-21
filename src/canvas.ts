@@ -27,13 +27,13 @@ email: rafael AT jannone DOT org
 
 import { charMap } from "./charMap";
 
-function toHex(v: number) {
-	var htab = "0123456789ABCDEF";
-	var r = htab.substr(v & 15, 1);
-	v >>= 4;
-	r = htab.substr(v & 15, 1) + r;
-	return r;
-}
+// function toHex(v: number) {
+// 	var htab = "0123456789ABCDEF";
+// 	var r = htab.substr(v & 15, 1);
+// 	v >>= 4;
+// 	r = htab.substr(v & 15, 1) + r;
+// 	return r;
+// }
 
 export class ScreenCanvas {
 	size: number;
@@ -47,8 +47,7 @@ export class ScreenCanvas {
 	palette: string[];
 	mode: number = 0;
 	ctx?: CanvasRenderingContext2D;
-	canvas?: HTMLCanvasElement;
-	el?: HTMLCanvasElement;
+	canvas: HTMLCanvasElement;
 
 	constructor() {
 		this.size = 256 * 24;
@@ -79,20 +78,22 @@ export class ScreenCanvas {
 		this.setPalette(13,201,91,186);
 		this.setPalette(14,204,204,204);
 		this.setPalette(15,255,255,255);
-	}
 
-	init () {
 		var canvas = document.createElement('canvas');
 		canvas.width = 256 * 2;
 		canvas.height = 192 * 2;
 		canvas.style.backgroundColor = 'black';
 		this.ctx = canvas.getContext("2d") || undefined;	
-		this.el = this.canvas = canvas;
+		this.canvas = canvas;
 	}
 
-	appendTo (parent: Node) {
+	getElement() {
+		return this.canvas;
+	}
+
+	appendTo(parent: Node) {
 		parent = parent || document.body;
-		parent.appendChild(this.el as Node);
+		parent.appendChild(this.canvas);
 	}
 
 	setMode (mode: number) {

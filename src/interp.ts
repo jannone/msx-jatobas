@@ -244,13 +244,13 @@ export class Interp extends InterpBase {
 		setTimeout(function() { I.resume(); }, tim);
 	}
 	
-	cmd_setsprite(idx: number, data: number[]) {
+	cmd_setsprite(idx: number, data: string) {
 		this.spriteCanvas.setSprite(idx, data);
 	}
 	
 	cmd_putsprite(idx: number, coord: number[], color: number, pat: number) {
-		var x = coord ? coord[0] : null;
-		var y = coord ? coord[1] : null;	
+		var x = coord ? coord[0] : undefined;
+		var y = coord ? coord[1] : undefined;	
 		this.spriteCanvas.putSprite(idx, x, y, color, pat);
 	}
 	

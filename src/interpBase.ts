@@ -61,12 +61,15 @@ export class InterpBase {
   constructor({
     canvas,
     spriteCanvas,
+    output,
   }: {
     canvas: ScreenCanvas,
     spriteCanvas: SpriteCanvas,
+    output: HTMLElement,
   }) {
     this.canvas = canvas;
     this.spriteCanvas = spriteCanvas;
+    this.output = output;
   }
 
   static keydown(e: KeyboardEvent) {

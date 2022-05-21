@@ -74,6 +74,10 @@ export class SpriteCanvas {
 		this.canvas = canvas;	
 	}
 
+	getElement() {
+		return this.canvas;
+	}
+
 	appendTo(parent: Node) {
 		parent = parent || document.body;
 		parent.appendChild(this.canvas);
@@ -111,7 +115,7 @@ export class SpriteCanvas {
 		this.changed = true;
 	}
 	
-	putSprite(idx: number, x: number, y: number, c: number, pat: number) {	
+	putSprite(idx: number, x?: number, y?: number, c?: number, pat?: number) {	
 		var oldX, oldY, oldC, oldPat;
 		if (this.sprites[idx]) {
 			oldX = this.sprites[idx].x;
