@@ -1,0 +1,30 @@
+{
+  "name": "msx-jatobas",
+  "version": "0.0.0",
+  "description": "Jatobas MSX-BASIC to Javascript transpiler",
+  "author": "Rafael Jannone <jannone@gmail.com>",
+  "license": "ISC",
+  "keywords": ["msx", "basic", "transpiler", "javascript"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jannone/msx-jatobas.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jannone/msx-jatobas/issues"
+  },
+  "homepage": "https://github.com/jannone/msx-jatobas#readme",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "eslint *.ts*"
+  },
+  "devDependencies": {
+    "@types/react": "^17.0.37",
+    "@types/react-dom": "^17.0.11",
+    "eslint": "^7.32.0",
+    "eslint-config-custom": "*",
+    "react": "^17.0.2",
+    "tsconfig": "*",
+    "typescript": "^4.5.2"
+  }
+}

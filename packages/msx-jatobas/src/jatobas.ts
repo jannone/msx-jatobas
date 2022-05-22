@@ -28,49 +28,76 @@ email: rafael AT jannone DOT org
 import { ScreenCanvas } from './canvas';
 import { Interp } from './interp';
 import { Parser } from './parser';
+import { ParsedProgram } from './parserBase';
 import { SpriteCanvas } from './sprites';
 
 export class Jatobas {
-	canvas: ScreenCanvas;
+	screenCanvas: ScreenCanvas;
 	spriteCanvas: SpriteCanvas;
 	output: HTMLDivElement;
+	interp?: Interp;
 
-	constructor(parent?: Node) {
-		parent = parent || document.body;
-	
+	onTranspiled?: (program: ParsedProgram) => void;
+	onRun?: () => void;
+	onStop?: () => void;
+	onChangeMode?: (mode: number) => void;
+
+	constructor({
+		parentScreen,
+		parentOutput,
+	}: {
+		parentScreen: Node,
+		parentOutput: Node,
+	}) {
 		var canvas;
 		canvas = new ScreenCanvas();
-		canvas.appendTo(parent);
-		this.canvas = canvas;
+		canvas.getElement().style.position = 'absolute';
+		canvas.appendTo(parentScreen);
+		this.screenCanvas = canvas;
 	
 		var spriteCanvas;
 		spriteCanvas = new SpriteCanvas();
 		spriteCanvas.getElement().style.position = 'absolute';
-		spriteCanvas.appendTo(parent);
+		spriteCanvas.appendTo(parentScreen);
 		this.spriteCanvas = spriteCanvas;
 	
 		var output = document.createElement('div');
 		output.id = "output";
 		output.style.color = 'white';
-		parent.appendChild(output);
+		parentOutput.appendChild(output);
 		this.output = output;
 		
-		spriteCanvas.getElement().style.top = `${canvas.getElement().offsetTop}px`;
-		spriteCanvas.getElement().style.left = `${canvas.getElement().offsetLeft}px`;			
-		output.style.position = 'absolute';		
-		output.style.top = `${canvas.getElement().offsetTop}px`;
-		output.style.left = `${canvas.getElement().offsetLeft}px`;		
+		// spriteCanvas.getElement().style.top = `${canvas.getElement().offsetTop}px`;
+		// spriteCanvas.getElement().style.left = `${canvas.getElement().offsetLeft}px`;			
+		// output.style.position = 'absolute';		
+		// output.style.top = `${canvas.getElement().offsetTop}px`;
+		// output.style.left = `${canvas.getElement().offsetLeft}px`;		
 	}
 
 	run(code: string) {
 		var interp = new Interp({
-			canvas: this.canvas,
+			canvas: this.screenCanvas,
 			spriteCanvas: this.spriteCanvas,
 			output: this.output,
 		});
-		var parser = new Parser();		
+		this.interp = interp;
+
+		interp.onRun = () => this.onRun?.();
+		interp.onStop = () => this.onStop?.();
+		interp.onChangeMode = (mode) => this.onChangeMode?.(mode);
+	
+		var parser = new Parser();
 		const program = parser.start(code);
+		this.onTranspiled?.(program);
 		interp.run(program);
 		return interp;	
+	}
+
+	halt() {
+		this.interp?.halt();
+	}
+
+	print(text: string) {
+		this.interp?.cmd_print({}, text, "\n");
 	}
 }

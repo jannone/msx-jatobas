@@ -1,25 +1,25 @@
 {
-  "name": "msx-jatobas",
-  "version": "1.0.0",
-  "description": "Jatobas MSX-BASIC to Javascript transpiler",
-  "main": "dist/index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc",
-    "dev": "tsc -w"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jannone/msx-jatobas.git"
-  },
-  "keywords": ["msx", "basic", "transpiler", "javascript"],
-  "author": "Rafael Jannone <jannone@gmail.com>",
+  "name": "msx-jatobas-monorepo",
+  "version": "0.0.0",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/jannone/msx-jatobas/issues"
+  "author": "Rafael Jannone <jannone@gmail.com>",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
-  "homepage": "https://github.com/jannone/msx-jatobas#readme",
   "devDependencies": {
-    "typescript": "^4.6.4"
-  }
+    "prettier": "latest",
+    "turbo": "latest"
+  },
+  "engines": {
+    "npm": ">=7.0.0",
+    "node": ">=14.0.0"
+  },
+  "packageManager": "npm@8.5.5"
 }

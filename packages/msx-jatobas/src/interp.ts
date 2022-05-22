@@ -110,14 +110,13 @@ export class Interp extends InterpBase {
 	
 	cmd_print(...args: any[]) {
 		/**@todo implement "USING" format mask */
-		if (args[0].file == null || !this.output) {
-			return;
-		}
+		const useTextOutput = args[0].file == null;
 		var output = [];
 		for (var i = 1; i < args.length; i++) {
 			output.push(args[i]);
 		}
-		if (args[0].file == null) {
+		if (useTextOutput) {
+			if (!this.output) return;
 			var el = document.createElement('pre');
 			el.innerHTML = output.join('').replace('<', '&lt;').replace("\n", '<br />');
 			this.output.appendChild(el);
